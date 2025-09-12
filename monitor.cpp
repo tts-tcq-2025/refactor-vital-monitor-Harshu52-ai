@@ -2,47 +2,70 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <string>
+#include <vector>
 #include <algorithm>
+
 using std::cout, std::flush, std::this_thread::sleep_for, std::chrono::seconds;
 
-bool isTemperatureInRange(float temperature) {
-    return temperature >= 95 && temperature <= 102;
+// ---------- Data structures ----------
+struct VitalThreshold {
+    std::string name;
+    float minVal;
+    float maxVal;
+};
+
+struct VitalStatus {
+    bool ok;
+    std::string message;
+};
+
+VitalStatus checkVital(float value, const VitalThreshold& threshold) {
+    if (value < threshold.minVal || value > threshold.maxVal) {
+        return {false, threshold.name + " is out of range!"};
+    }
+    return {true, ""};
 }
 
-bool isPulseRateInRange(float pulseRate) {
-    return pulseRate >= 60 && pulseRate <= 100;
-}
-
-bool isSpo2InRange(float spo2) {
-    return spo2 >= 90;
-}
-
-void alert(const char* message) {
-    cout << message << "\n";
-    for (int i = 0; i < 6; i++) {
+// ---------- I/O side effects ----------
+void blinkWarning(int secondsDuration = 6) {
+    for (int i = 0; i < secondsDuration; i++) {
         cout << "\r* " << flush;
         sleep_for(seconds(1));
         cout << "\r *" << flush;
         sleep_for(seconds(1));
     }
+    cout << "\n";
 }
 
-struct VitalCheck {
-    bool ok;
-    const char* message;
-};
-
-bool vitalsInRange(float temperature, float pulseRate, float spo2) {
-    const VitalCheck checks[] = {
-        {isTemperatureInRange(temperature), "Temperature is critical!"},
-        {isPulseRateInRange(pulseRate), "Pulse Rate is out of range!"},
-        {isSpo2InRange(spo2), "Oxygen Saturation out of range!"}
-    };
-    auto it = std::find_if(std::begin(checks), std::end(checks),
-                           [](const VitalCheck& check){ return !check.ok; });
-    if (it != std::end(checks)) {
-        alert(it->message);
-        return false;
+// Helper: Collect all abnormal vitals
+std::vector<std::string> collectCriticalVitals(
+    const std::vector<std::pair<float, VitalThreshold>>& vitals) {
+    std::vector<std::string> messages;
+    for (const auto& vital : vitals) {
+        VitalStatus result = checkVital(vital.first, vital.second);
+        if (!result.ok) {
+            messages.push_back(result.message);
+        }
     }
-    return true;
+    return messages;
+}
+
+int vitalsOk(float temperature, float pulseRate, float spo2) {
+    std::vector<std::pair<float, VitalThreshold>> vitals = {
+        {temperature, {"Temperature", 95, 102}},
+        {pulseRate, {"Pulse Rate", 60, 100}},
+        {spo2, {"Oxygen Saturation", 90, 100}}
+    };
+
+    std::vector<std::string> warnings = collectCriticalVitals(vitals);
+
+    if (!warnings.empty()) {
+        for (const auto& msg : warnings) {
+            cout << msg << "\n";
+        }
+        blinkWarning();
+        return 0;
+    }
+    return 1;
 }
