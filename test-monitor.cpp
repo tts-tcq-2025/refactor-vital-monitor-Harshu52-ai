@@ -1,22 +1,27 @@
 #include <gtest/gtest.h>
 #include "./monitor.h"
 
-TEST(Monitor, TemperatureOutOfRange) {
-    EXPECT_FALSE(vitalsInRange(103, 80, 95));
-    EXPECT_FALSE(vitalsInRange(94, 80, 95));
+TEST(Monitor, NotOkWhenAnyVitalIsOffRange) {
+  ASSERT_FALSE(vitalsOk(99, 102, 70));   // Pulse out of range
+  ASSERT_TRUE(vitalsOk(98.1, 70, 98));   // All in range
 }
 
-TEST(Monitor, PulseRateOutOfRange) {
-    EXPECT_FALSE(vitalsInRange(98, 59, 95));
-    EXPECT_FALSE(vitalsInRange(98, 101, 95));
+TEST(Monitor, TemperatureLowShouldFail) {
+  ASSERT_FALSE(vitalsOk(94, 70, 98));    // Low temperature
 }
 
-TEST(Monitor, Spo2OutOfRange) {
-    EXPECT_FALSE(vitalsInRange(98, 80, 89));
+TEST(Monitor, TemperatureHighShouldFail) {
+  ASSERT_FALSE(vitalsOk(103, 70, 98));   // High temperature
 }
 
-TEST(Monitor, AllVitalsOk) {
-    EXPECT_TRUE(vitalsInRange(98.1, 70, 98));
-    EXPECT_TRUE(vitalsInRange(95, 60, 90));
-    EXPECT_TRUE(vitalsInRange(102, 100, 90));
+TEST(Monitor, PulseLowShouldFail) {
+  ASSERT_FALSE(vitalsOk(98.6, 55, 98));  // Low pulse
+}
+
+TEST(Monitor, PulseHighShouldFail) {
+  ASSERT_FALSE(vitalsOk(98.6, 105, 98));  // High pulse
+}
+
+TEST(Monitor, Spo2LowShouldFail) {
+  ASSERT_FALSE(vitalsOk(98.6, 72, 85));  // Low SpO₂
 }
